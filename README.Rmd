@@ -1,0 +1,176 @@
+---
+title: "Diplodus_Distribution"
+author: "Kayla Heuer"
+date: "2025-02-26"
+output: rmarkdown::github_document
+---
+
+Packages
+```{r}
+install.packages("rinat")
+install.packages("tidyverse")
+install.packages("sf")
+install.packages("ggplot2")
+install.packages("rosm")
+install.packages("ggspatial")
+install.packages("prettymapr")
+install.packages("terra")
+install.packages("ggspatial")
+install.packages("mapview")
+install.packages("leafpop")
+install.packages("viridis")
+
+library(terra)
+library(ggmap)
+library(geodata)
+library(tmap)
+library(gridExtra)
+library(cowplot)
+library(ggpubr)
+
+
+
+```
+
+Calling iNaturalist locality data
+```{r}
+#Downloaded the csv files for Diplodus cervinus as the Northern Hemisphere was isolated under a different taxon_name - makes sense as they are two different species but they were subspecies - I seareched the common name
+#I then binded these to get a data frame of 1148 observations
+zebra_SH <- read.csv("observations-zebra-SH.csv")
+zebra_NH <- read.csv("observations-zebra-NH.csv")
+zebra <- rbind(zebra_SH, zebra_NH)
+
+#Call the Diplodus sargus/ Diplodus capensis data directly from iNat because it is too large to download
+library(rinat)
+
+white <- get_inat_obs(taxon_name = "Diplodus capensis",
+                      maxresults = 1000)
+
+#View the first few rows of data
+head(zebra)
+head(white)
+```
+
+Now that I have read my data into R I want to filter it
+```{r}
+library(tidyverse)
+#Filter returned observations by a range of column attribute criteria
+zebra <- zebra %>% filter(!is.na(latitude) & 
+                              captive_cultivated == "FALSE" &
+                              quality_grade == "research")
+
+white <- white %>% filter(!is.na(latitude) & captive_cultivated == "false" &
+                quality_grade == "research")
+
+
+class(zebra)
+class(white)
+
+#Subsetting based on attributes - I only want certain columns
+columns <- c("id", "scientific_name", "description", "latitude", "longitude", "common_name", "url", "species_guess", "positional_accuracy", "user_name")
+
+zebrasub <- zebra[,columns]
+
+whitesub <- white[,columns]
+
+
+#binding my dataframes
+diplodus <- rbind(zebrasub, whitesub)
+class(diplodus)
+
+
+```
+
+Both my datasets are data.frames but I need them to be spatial objects
+```{r}
+library(sf)
+#Make the dataframe a spatial object of class = "sf"
+diplodus <- st_as_sf(diplodus,coords = c("longitude", "latitude"), crs = 4326)
+class(diplodus)
+names(diplodus)
+
+```
+
+Adding a basemap
+```{r}
+library(rosm)
+library(ggspatial)
+
+ggplot() + 
+  annotation_map_tile(type = "cartolight", progress = "none") + 
+  geom_sf(data=diplodus, aes(color = (scientific_name)))
+```
+Interactive Map
+```{r}
+library(leaflet)
+library(htmltools)
+
+color_palette <- colorFactor(palette = c( "yellow", "blue", "purple"), domain =diplodus$scientific_name)
+leaflet() %>%
+  # Add default OpenStreetMap map tiles
+  addTiles(group = "Default") %>%  
+  # Add our points
+  addCircleMarkers(data = diplodus,
+                   group = "Diplodus",
+                   radius = 0.25, 
+                   color = ~color_palette(scientific_name))  %>%
+  addLegend("bottomright", pal = color_palette, values = diplodus$scientific_name,
+            title = "Scientific Name", opacity = 0.5)
+```
+
+Common sense checks - with live url links
+```{r}
+library(mapview)
+library(leafpop)
+library(viridis)
+
+#Define a colour palette
+fish_palette <- colorRampPalette(c("yellow", "purple", "blue"))
+ldiplodus <- diplodus %>%
+  mutate(url = paste("<b><a href='", url, "'>Link to iNat observation</a></b>"))
+
+mapview(diplodus, 
+        zcol = "scientific_name",
+        col.region = fish_palette(3),
+        popup = 
+          popupTable(ldiplodus,
+            zcol = c("user_name", "url", "scientific_name")), cex = 3, alpha = 0.1, lwd = 0.5, legend = TRUE) 
+```
+
+South Africa Focus
+```{r}
+zebra <- zebra %>% filter(!is.na(latitude) & 
+                            latitude < 0 &
+                              captive_cultivated == "FALSE" &
+                              quality_grade == "research")
+
+white <- white %>% filter(!is.na(latitude) &
+                          latitude < 0 &
+                             captive_cultivated == "false" &
+                quality_grade == "research")
+zebraSA <- zebra[,columns]
+
+whiteSA <- white[,columns]
+
+diplodusSA <- rbind(whiteSA, zebraSA)
+
+diplodusSA$scientific_name <- as.factor(diplodusSA$scientific_name)
+
+color_paletteSA <- colorFactor(palette = c( "yellow", "blue"), domain =diplodus$scientific_name)
+
+diplodusSA <- st_as_sf(diplodusSA,coords = c("longitude", "latitude"), crs = 4326)
+ldiplodusSA <- diplodusSA %>%
+  mutate(url = paste("<b><a href='", url, "'>Link to iNat observation</a></b>"))
+
+mapview(diplodusSA, 
+        zcol = "scientific_name",
+        col.region = viridis(2, option = "C") , 
+        popup = 
+          popupTable(ldiplodusSA,
+            zcol = c("user_name", "url", "scientific_name")), cex = 3, alpha = 0.8, lwd = 0.5, legend = TRUE)
+
+```
+
+=======
+>>>>>>> b3e5364d4184ee420f5ba3085a5361192590ac03
+
