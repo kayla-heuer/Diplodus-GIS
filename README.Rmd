@@ -137,7 +137,7 @@ mapview(diplodus,
             zcol = c("user_name", "url", "scientific_name")), cex = 3, alpha = 0.1, lwd = 0.5, legend = TRUE) 
 ```
 
-South Africa Focus
+South Africa Focus + Addin MPAs
 ```{r}
 zebra <- zebra %>% filter(!is.na(latitude) & 
                             latitude < 0 &
@@ -154,20 +154,51 @@ whiteSA <- white[,columns]
 
 diplodusSA <- rbind(whiteSA, zebraSA)
 
+MPA <- st_read("SAMPAZ_OR_2024_Q3.shp")
+st_crs(MPA)
+
+# Ensure MPA is a spatial object
+MPA <- st_as_sf(MPA)
+
+# Define the bounding box for South Africa's coastline (adjust if needed)
+south_africa_bbox <- st_bbox(c(xmin = 16, xmax = 33, ymin = -35, ymax = -22), crs = st_crs(MPA))
+
+# Filter MPAs that intersect with the bounding box
+coastal_MPAs <- MPA %>%
+  filter(st_intersects(MPA, st_as_sfc(south_africa_bbox), sparse = FALSE))
+
 diplodusSA$scientific_name <- as.factor(diplodusSA$scientific_name)
 
-color_paletteSA <- colorFactor(palette = c( "yellow", "blue"), domain =diplodus$scientific_name)
+color_paletteSA <- colorFactor(palette = c( "yellow", "lightblue"), domain =diplodus$scientific_name)
 
 diplodusSA <- st_as_sf(diplodusSA,coords = c("longitude", "latitude"), crs = 4326)
 ldiplodusSA <- diplodusSA %>%
   mutate(url = paste("<b><a href='", url, "'>Link to iNat observation</a></b>"))
 
-mapview(diplodusSA, 
+mapview(diplodusSA,
         zcol = "scientific_name",
         col.region = viridis(2, option = "C") , 
         popup = 
           popupTable(ldiplodusSA,
-            zcol = c("user_name", "url", "scientific_name")), cex = 3, alpha = 0.8, lwd = 0.5, legend = TRUE)
+            zcol = c("user_name", "url", "scientific_name")), cex = 1.5, alpha = 0.6, lwd = 0.3, legend = TRUE) +mapview(coastal_MPAs,col.regions = "deepskyblue", alpha = 0.3, lwd = 1)
+
+```
+```{r}
+library(sf)
+library(dplyr)
+
+# Ensure MPA is a spatial object
+MPA <- st_as_sf(MPA)
+
+# Define the bounding box for South Africa's coastline (adjust if needed)
+south_africa_bbox <- st_bbox(c(xmin = 16, xmax = 33, ymin = -35, ymax = -22), crs = st_crs(MPA))
+
+# Filter MPAs that intersect with the bounding box
+coastal_MPAs <- MPA %>%
+  filter(st_intersects(MPA, st_as_sfc(south_africa_bbox), sparse = FALSE))
+
+# Plot to check
+plot(st_geometry(coastal_MPAs), col = "blue")
 
 ```
 
