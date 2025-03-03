@@ -183,24 +183,7 @@ mapview(diplodusSA,
             zcol = c("user_name", "url", "scientific_name")), cex = 1.5, alpha = 0.6, lwd = 0.3, legend = TRUE) +mapview(coastal_MPAs,col.regions = "deepskyblue", alpha = 0.3, lwd = 1)
 
 ```
-```{r}
-library(sf)
-library(dplyr)
 
-# Ensure MPA is a spatial object
-MPA <- st_as_sf(MPA)
-
-# Define the bounding box for South Africa's coastline (adjust if needed)
-south_africa_bbox <- st_bbox(c(xmin = 16, xmax = 33, ymin = -35, ymax = -22), crs = st_crs(MPA))
-
-# Filter MPAs that intersect with the bounding box
-coastal_MPAs <- MPA %>%
-  filter(st_intersects(MPA, st_as_sfc(south_africa_bbox), sparse = FALSE))
-
-# Plot to check
-plot(st_geometry(coastal_MPAs), col = "blue")
-
-```
 
 =======
 >>>>>>> b3e5364d4184ee420f5ba3085a5361192590ac03
