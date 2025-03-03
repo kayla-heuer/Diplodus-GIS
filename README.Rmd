@@ -8,6 +8,7 @@ output: html_document
 
 Packages
 ```{r}
+chooseCRANmirror(graphics = FALSE, ind = 1) 
 install.packages("rinat")
 install.packages("tidyverse")
 install.packages("sf")
